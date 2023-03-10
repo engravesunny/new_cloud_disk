@@ -1,9 +1,28 @@
 <template>
     <el-scrollbar>
-    <div v-loading="!doc_list.length&&!isEmpty" class="container">
-
+    <div class="container">
+        <div class="top" :style="{zIndex:zIndex}">
+            <div class="right">
+                <el-select @change="getDoc(currnetID)" v-model="sortType" class="select_box" placeholder="Select" size="small">
+                    <el-option
+                    v-for="item in options1"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                    />
+                </el-select>
+                <el-select @change="getDoc(currnetID)" v-model="sortSc" class="select_box" placeholder="Select" size="small">
+                    <el-option
+                    v-for="item in options2"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                    />
+                </el-select>
+            </div>
+        </div>
         <!-- 页面内容展示 -->
-            <div class="container_list">
+            <div v-loading="!doc_list.length&&!isEmpty" class="container_list">
                 <div style="width:100%;height:100%;">
                     <ul>
                         <li
@@ -14,8 +33,9 @@
                         :key="index"
                         @click="docFn(item)"
                         @contextmenu.prevent="$event =>showOptions($event,item)"   >
-                            <div class="icon iconfont">{{getFileIcon(item.filename||item.name)}}</div>
-                            <div class="name shenglue">{{item.filename||item.name}}</div>
+                            <div class="icon iconfont">{{item.type === 1? `&#xe6ea;` :getFileIcon(item.name)}}</div>
+                            <div class="name shenglue2">{{item.filename||item.name}}</div>
+                            <div class="time">{{ timeToDate(item.updated_at) }}</div>
                         </li> 
                     </ul>
                 </div>
@@ -27,7 +47,7 @@
         </div>
         <!-- 右键菜单 -->
         <el-card ref="option" v-if="isShowOption" :style="{position:'fixed',top:top+'px',left:left+'px'}" class="option animate" body-style="padding:0;">
-            <div class="option_item" v-if="target[0].filename" @click="download">下载</div>
+            <div class="option_item" v-if="target[0].type===2" @click="download">下载</div>
             <div class="option_item" @click="share">分享</div>
             <div class="option_item" @click="like">收藏</div>
             <div class="option_item" @click="rename">重命名</div>
@@ -41,7 +61,7 @@
             <div class="title">重命名</div>
             <div class="input">
                 <!-- <el-input :placeholder="target[0].filename||target[0].name||''"></el-input> -->
-                <el-input v-model="newname" :placeholder="target[0]?.filename?.split('.')[0]||target[0].name||''"></el-input><span v-if="target[0]?.filename">{{ '.'+target[0].filename.split('.')[1] }}</span>
+                <el-input v-model="newname" :placeholder="target[0]?.name?.split('.')[0]||target[0].name||''"></el-input><span v-if="target[0].type === 2">{{ '.'+getFileExtension(target[0].name) }}</span>
             </div>
             <div class="btn">
                 <el-button @click="renameBtnOk" type="primary">确认</el-button>
@@ -69,15 +89,14 @@
 </template>
 
 <script setup>
+import {timeToDate} from '../utils/timeToDate.js'
 import previewPage from './previewPage.vue'
 import dragUpload from './dragUpload.vue'
 import 'animate.css'
 import PubSub from 'pubsub-js'
 import { transform } from '@/utils/transform.js'
 import { getFileIcon } from '@/utils/icon.js'
-import { getFile } from '@/api/document'
-import { getFileList,delDir,dirRename,allDir,dirMove } from '@/api/dir'
-import { delDocument,download_doc,renameDoc,docMove } from '@/api/document.js'
+import { delFile,download_doc,renameDoc,fileMove,getFileListPlus,allDir } from '@/api/document.js'
 import axios from 'axios'
 const router = useRouter()
 const route = useRoute()
@@ -135,7 +154,8 @@ const download = async() => {
     isShowOption.value = false
     try {
         const res = await download_doc({
-            file_id:data.id
+            file_id:data.id,
+            type:2
         })
         console.log(res);
         ElMessage({
@@ -159,6 +179,24 @@ const like = () => {
 }
 
 // 重命名
+// 取后缀
+function getFileExtension(filename) {
+  // 如果传入的不是字符串，返回空字符串
+  if (typeof filename !== "string") {
+    return "";
+  }
+
+  // 获取最后一个点号的位置
+  const lastDotIndex = filename.lastIndexOf(".");
+
+  // 如果文件名不包含点号，或者最后一个点号在文件名的开头，返回空字符串
+  if (lastDotIndex === -1 || lastDotIndex === 0) {
+    return "";
+  }
+
+  // 获取文件后缀并返回
+  return filename.slice(lastDotIndex + 1);
+}
 
 // 确认重命名
 const renameBtnOk = async() => {
@@ -170,50 +208,35 @@ const renameBtnOk = async() => {
     loadingText.value = '重命名中'
 
     console.log(data);
-    if(data.filename){
+    try {
         const res = await renameDoc({
             file_id:data.id,
-            directory_id:data.directory_id,
-            newname:newname.value + '.' + data.filename.split('.')[1]
+            new_name:data.type===1?newname.value:newname.value+'.'+getFileExtension(data.name),
+            type:data.type,
+            parent_id:data.parent_id
         })
         if(res.data.code === 0){
             ElMessage({
                 type:'success',
                 message:'重命名成功'
             })
-            PubSub.publish('updateDoc')
-        }
-        loading.value = false
-        loadingText.value = ''
-    } else {
-        try {
-            const res = await dirRename({
-                directory_id:data.id,
-                newname:newname.value
+        } else {
+            ElMessage({
+                message:res?.data?.msg
             })
-            if(res.data.code === 0){
-                ElMessage({
-                    type:'success',
-                    message:'重命名成功'
-                })
-            } else {
-                ElMessage({
-                    message:res?.data?.msg
-                })
-            }
-        } catch (error) {
-            ElMessage('操作失败')
         }
-        PubSub.publish('updateDoc')
-        loading.value = false
-        loadingText.value = ''
+    } catch (error) {
+        ElMessage('操作失败')
     }
+    PubSub.publish('updateDoc')
+    loading.value = false
+    loadingText.value = ''
     renameBtnCancel()
 }
 
 // 取消重命名
 const renameBtnCancel = () => {
-    zIndex.value = 1
+    PubSub.publish('zIndexTo',0)
     isShowRenameBox.value = false
     newname.value = ''
 }
@@ -224,6 +247,7 @@ let isShowRenameBox = ref(false)
 // 新名字
 let newname = ref('')
 const rename = () => {
+    PubSub.publish('zIndexTo',0)
     isShowOption.value = false 
     isShowRenameBox.value = true
 }
@@ -237,7 +261,6 @@ const defaultProps = {
   children: 'children',
   label: 'name',
 }
-
 const btnMoveOk = async() => {
     let data = target[0]
     console.log('data',data);
@@ -246,44 +269,24 @@ const btnMoveOk = async() => {
 
     console.log(data);
     try {
-        if(data.filename){
-            const res = await docMove({
-                file_id:data.id,
-                cur_dir_id:data.directory_id,
-                target_dir_id:currentMoveId.value,
-                name:data.filename
+        const res = await fileMove({
+            file_id:data.id,
+            type:data.type,
+            to_parent_id:currentMoveId.value,
+            name:data.name
+        })
+        console.log(res);
+        if(res.data.code === 0){
+            ElMessage({
+                type:'success',
+                message:'文件移动成功'
             })
-            console.log(res);
-            if(res.data.code === 0){
-                ElMessage({
-                    type:'success',
-                    message:'文件移动成功'
-                })
-                PubSub.publish('updateDoc')
-            } else {
-                ElMessage(res?.data?.msg)
-            }        
-            loading.value = false
-            loadingText.value = ''
+            PubSub.publish('updateDoc')
         } else {
-            const res = await dirMove({
-                cur_dir_id:data.id,
-                target_dir_id:currentMoveId.value,
-                name:data.name
-            })
-            console.log(res);
-            if(res.data.code === 0){
-                ElMessage({
-                    type:'success',
-                    message:'文件夹移动成功'
-                })
-                PubSub.publish('updateDoc')
-            } else {
-                ElMessage(res?.data?.msg)
-            }
-            loading.value = false
-            loadingText.value = ''
-        }
+            ElMessage(res?.data?.msg)
+        }        
+        loading.value = false
+        loadingText.value = ''
     } catch (error) {
         console.log('操作失败');
         loading.value = false
@@ -301,7 +304,6 @@ const btnMoveCancel = () => {
 const handleNodeClick = (node) =>{
     currentMoveId.value = node.id
 }
-
 const move = async() => {
     dirList = reactive([])
     isShowOption.value = false
@@ -311,7 +313,7 @@ const move = async() => {
     }
     const res = await allDir()
     console.log('所有文件夹',res);
-    res.data.data.directory_list.map(item=>{
+    res.data.data.folders.map(item=>{
         dirList.push(item)
     })
     console.log(dirList);
@@ -336,53 +338,27 @@ const delDoc = async() => {
 
     console.log(data);
     try {
-        if(data.filename){
-            const res = await delDocument({
-                file_id:data.id,
-                directory_id:data.directory_id
+        const res = await delFile({
+            file_id:data.id
+        })
+        isShowOption.value = false
+        if(res.data.code === 0){
+            ElMessage({
+                type:'success',
+                message:'删除成功'
             })
-            isShowOption.value = false
-            if(res.data.code === 0){
-                ElMessage({
-                    type:'success',
-                    message:'删除成功'
-                })
-                PubSub.publish('updateDoc')
-                const index = deleteList.indexOf(id)
-                deleteList.splice(index, 1)
-                loadingText.value = ''
-            } else {
-                ElMessage({
-                    message:res.data.msg
-                })
-                PubSub.publish('updateDoc')
-                const index = deleteList.indexOf(id)
-                deleteList.splice(index, 1)
-                loadingText.value = ''
-            }
-            
+            PubSub.publish('updateDoc')
+            const index = deleteList.indexOf(id)
+            deleteList.splice(index, 1)
+            loadingText.value = ''
         } else {
-            const res = await delDir({
-                directory_id:data.id
+            ElMessage({
+                message:res.data.msg
             })
-            isShowOption.value = false
-            if(res.data.code === 0){
-                ElMessage({
-                    type:'success',
-                    message:'删除成功'
-                })
-                PubSub.publish('updateDoc')
-                const index = deleteList.indexOf(id)
-                deleteList.splice(index, 1)
-                loadingText.value = ''
-            } else {
-                ElMessage(res.data.msg)
-                PubSub.publish('updateDoc')
-                const index = deleteList.indexOf(id)
-                deleteList.splice(index, 1)
-                loadingText.value = ''
-            }
-            
+            PubSub.publish('updateDoc')
+            const index = deleteList.indexOf(id)
+            deleteList.splice(index, 1)
+            loadingText.value = ''
         }
     } catch (error) {
         ElMessage('操作失败')
@@ -399,7 +375,7 @@ let isShowPreview = ref(false)
 let previewFile = reactive([])
 // 文件点击事件
 const docFn = (item) => {
-    if(item.parent_id===0||item.parent_id){
+    if(item.type === 1){
         // 为文件夹
         router.push({
             path:'home',
@@ -422,34 +398,67 @@ const docFn = (item) => {
 const id = route.query.id || 0
 
 // 更新文件列表
+// 排序类型
+let sortType = ref('name')
+let sortSc = ref('ASC')
+// name
+// size
+// udpated_at
+// created_at
+
+// ASC
+// DESC
+// 排序类型表格
+const options1 = reactive([
+  {
+    value: 'name',
+    label: '按名称排序',
+  },
+  {
+    value: 'size',
+    label: '按文件大小排序',
+  },
+  {
+    value: 'updated_at',
+    label: '按更新时间排序',
+  },
+  {
+    value: 'created_at',
+    label: '按创建时间排序',
+  }
+])
+const options2 = reactive([
+    {
+        value:'ASC',
+        label:'升序'
+    },
+    {
+        value:'DESC',
+        label:'降序'
+    }
+])
+
 const getDoc = async(parant_id=0) => {
     doc_list.splice(0,doc_list.length)
-    const res =await getFile({
-        directory_id:parant_id
+    const {data} =await getFileListPlus({
+        parent_id:parant_id,
+        order_id:sortType.value,
+        order_direction:sortSc.value
     })
-    const res1 =await getFileList({
-        parent_id:parant_id
-    }) 
-    if(res1.data.code === 0 && res.data.code === 0){
-        console.log('文件夹',res1);
-        console.log('文件',res);
-        if(!res1?.data?.data?.directory_list.length){
-            isEmpty.value = true
-        }
-        res1?.data?.data?.directory_list.map(item=>{
-            doc_list.push(item)
-        })
-        res?.data?.data?.file_list.map(item=>{
-            doc_list.push(item)
-        })
-    } else {
-        ElMessage(res?.data?.msg)
-        ElMessage(res1?.data?.msg)
+    if(!data?.data?.files?.length){
+        isEmpty.value = true
     }
+    console.log(data);
+    data?.data?.files?.map(item=>{
+        doc_list.push(item)
+    })
 }
 
 onMounted(async()=>{
     await getDoc(id)
+    PubSub.subscribe('zIndexTo',(a,num)=>{
+        zIndex.value = num
+    })
     PubSub.subscribe('updateDoc',async()=>{
         await getDoc(route.query.id)
     })
@@ -573,6 +582,19 @@ watch(()=>route,(val)=>{
             flex: 1;
             display: flex;
             flex-direction: column;
+            .top{
+                width: 100%;
+                height: 30px;
+                // background-color: pink;
+                line-height: 30px;
+                .right{
+                    margin-right: 30px;
+                    float: right;
+                    .select_box{
+                        width: 120px;
+                    }
+                }
+            }
             .container_list{
                 width: 100%;
                 flex: 1;
@@ -602,6 +624,11 @@ watch(()=>route,(val)=>{
                         text-align: center;
                         width: 100%;
                         margin: 5px;
+                    }
+                    .time{
+                        font-weight: 100;
+                        color: gray;
+                        font-size: 10px;
                     }
                 }
                 li:hover{

@@ -31,7 +31,6 @@ const router = createRouter({
 // const routeNeedToken = ["/myLike","/suggestSong","/songList"]
 
 router.beforeEach((to,from,next)=>{
-    console.log(to,from,next);
     if(to.fullPath !== '/login'){
         // 未登录
         if(!localStorage.getItem('user_info')){

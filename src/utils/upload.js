@@ -1,6 +1,6 @@
 import { md5ForChunks } from '@/utils/md5ForChunks.js'
 import { createChunks } from '@/utils/createChunks'
-import { uploadDoczz,chunkUploadPrepare, chunkUpload, chunkUploadComplete } from '@/api/document.js'
+import { uploadDoczz,chunkUploadPrepare, chunkUpload, chunkUploadComplete, newDirOrUploadSmall } from '@/api/document.js'
 import PubSub from 'pubsub-js';
 import { ElMessage } from 'element-plus';
 
@@ -30,10 +30,12 @@ export const uploadDocs = async(file,props) => {
     console.log('整个文件的md5',hash);
     if(flag){
         // 是小文件
-        const smallres = await uploadDoczz({
-            md5:hash,
+        const smallres = await newDirOrUploadSmall({
+            hash:hash,
             file:file,
-            directory_id:Number(props.currnetID)
+            name:file.name,
+            parent_id:Number(props.currnetID),
+            type:2
         })
         PubSub.publish('updatePer',Number(50))
         if(smallres.data.code === 0){
@@ -62,9 +64,9 @@ export const uploadDocs = async(file,props) => {
 
     const res1 = await chunkUploadPrepare({
         file,
-        md5:hash,
+        hash,
         name:file.name,
-        directory_id:props.currnetID
+        parent_id:props.currnetID
     }) 
     clearInterval(timer)
     timer = null
@@ -127,7 +129,7 @@ export const uploadDocs = async(file,props) => {
         console.log(1);
         part_objects.sort((a,b)=>a.part_number-b.part_number)
         console.log(2);
-        console.log(part_objects);
+        console.log('part_obhect',part_objects);
         console.log(3);
         console.log('文件分片整合最终上传');
         const res3 = await chunkUploadComplete({
@@ -135,8 +137,8 @@ export const uploadDocs = async(file,props) => {
             upload_id,
             part_objects,
             name:file.name,
-            directory_id:Number(props.currnetID),
-            md5:hash,
+            parent_id:Number(props.currnetID),
+            hash,
             size:file.size
         })
         PubSub.publish('updatePer',Number(90))

@@ -45,24 +45,17 @@
 
         <div class="user_info">
 
-            <!-- 剩余容量 -->
-
-            <div class="rest_capacity">
-                <div v-if="capacity" class="num_display">
-                    剩余容量：{{ used }} / {{ capacity }}
-                </div>
-                <div v-if="percentage" class="process_display">
-                    <el-progress :show-text="false" :percentage="percentage" />
-                </div>
-            </div>
-
-            <!-- 剩余容量 -->
-
             <!-- 用户详情 -->
 
             <div class="user_detail">
                 <div v-if="avatar" class="user_avatar">
-                    <img :src="avatar" alt="">
+                    <el-upload
+                        class="elUpload"
+                        action="#"
+                        :before-upload="uploadAvatar"
+                    >
+                        <img :src="avatar" alt="" title="更改头像">
+                    </el-upload>
                 </div>
                 <div v-if="username" class="user_name shenglue">
                     {{ username }}
@@ -82,33 +75,67 @@
 </template>
 
 <script setup>
+import  { setUserInfo } from "@/utils/setLocalStorage" 
+import { updateAvatar,getUserInfo } from '@/api/user'
 import { Capacity } from '../../../../utils/computed';
 import { user } from '@/store/user'
 import { storeToRefs } from 'pinia'
 const userStore = user()
 let { userInfo } = storeToRefs(userStore)
 
-let capacity = ref(0)
-let used = ref(0)
 let username = ref('')
 let avatar = ref('')
 let percentage = ref(0)
 
-onMounted(()=>{
-    if(!userInfo.value){
-        console.log(userInfo.value);
+let loadUserInfo = () => {
+    if(userInfo.value.token){
+        username.value = userInfo.value.username
+        avatar.value = userInfo.value.avatar
     } else {
         if(localStorage.getItem('user_info')){
             userInfo.value = JSON.parse(localStorage.getItem('user_info'))
-            capacity.value = Capacity(userInfo.value.capacity)
-            used.value = Capacity(userInfo.value.used)
             username.value = userInfo.value.username
             avatar.value = userInfo.value.avatar
-            percentage = (userInfo.value.used / userInfo.value.capacity)*100
         } else {
             router.push('/login')
         }
     }
+}
+
+let updateUserInfo = async () => {
+    const res = await getUserInfo()
+    userInfo.value.id = res.data.data.token
+    userInfo.value.username = res.data.data.username
+    userInfo.value.avatar = res.data.data.avatar
+    userInfo.value.used = res.data.data.used
+    userInfo.value.capacity = res.data.data.capacity
+    userInfo.value.email = res.data.data.email
+    setUserInfo()
+}
+
+let uploadAvatar = async(file) => {
+    try {
+        const {data} = await updateAvatar({
+            avatar,file
+        })
+        if(data.code === 0){
+            await updateUserInfo()
+            ElMessage({
+                type:'success',
+                message:'头像更新成功'
+            })
+        } else {
+            ElMessage(data?.data?.msg)
+        }
+    } catch (error) {
+        console.log(error);
+    }
+    
+    return false
+}
+
+onMounted(()=>{
+    loadUserInfo()
 })
 
 </script>
@@ -151,7 +178,7 @@ onMounted(()=>{
     }
     .user_info{
         width: 100%;
-        height: 160px;
+        height: 100px;
         .rest_capacity{
             box-sizing: border-box;
             width: 100%;
@@ -178,10 +205,20 @@ onMounted(()=>{
                 height: 50%;
                 text-align: center;
                 line-height: 50px;
-                img{
-                    width: 35px;
-                    height: 35px;
+                .elUpload{
+                    width: 100%;
+                    height: 100%;
+                    text-align: center;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    img{
+                        border-radius: 50%;
+                        width: 35px;
+                        height: 35px;
+                    }
                 }
+                
             }
             .user_name{
                 box-sizing: border-box;

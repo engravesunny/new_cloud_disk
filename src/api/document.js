@@ -39,8 +39,8 @@ export const chunkUploadComplete = data => request({
 })
 
 // 文件删除
-export const delDocument = data => request({
-    url:'/file/delete',
+export const delFile = data => request({
+    url:'/file/deleteWithFolders',
     method:'post',
     data
 })
@@ -62,8 +62,27 @@ export const renameDoc = data => request({
 
 // 文件移动
 
-export const docMove = data => request({
+export const fileMove = data => request({
     url:'/file/move',
     method:'post',
     data
+})
+
+
+
+// -----------------------------------------------------------------------------------------
+
+export const getFileListPlus = params => request({
+    url:'/file/list',
+    params
+})
+
+export const newDirOrUploadSmall = data => request({
+    url:"/file/createWithFolders",
+    method:'post',
+    data
+})
+
+export const allDir = () => request({
+    url:"/file/folderAll"
 })

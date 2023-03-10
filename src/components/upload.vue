@@ -43,7 +43,7 @@
 import 'animate.css'
 import PubSub from 'pubsub-js';
 import { uploadDocs } from '@/utils/upload.js'
-import { createFileList } from '@/api/dir.js'
+import { newDirOrUploadSmall } from '@/api/document.js'
 const props = defineProps(['currnetID'])
 
 let percentage = ref(0)
@@ -63,6 +63,7 @@ const uploadDoc = async(file) => {
         })
         isShowMenu.value = false
         showPer.value = true
+        PubSub.publish('zIndexTo',1)
         return uploadDocs(file,props)
     }
     
@@ -71,9 +72,10 @@ const uploadDoc = async(file) => {
 
 // 确认新建
 const btnOk = async() =>{
-    const res = await createFileList({
+    const res = await newDirOrUploadSmall({
         parent_id:Number(props.currnetID),
-        name:dir_name.value||'新建文件夹'
+        name:dir_name.value||'新建文件夹',
+        type:1
     })
     console.log(res);
     if(res.data.code === 0){
@@ -86,16 +88,18 @@ const btnOk = async() =>{
         ElMessage(res.data.msg)
         PubSub.publish('updateDoc')
     }
-    isShowNewDirBox.value = false
+    btnCancel()
 }
 // 取消新建
 const btnCancel = () =>{
     dir_name.value = ''
     isShowNewDirBox.value = false
+    PubSub.publish('zIndexTo',1)
 }
 
 // 打开新建窗口
 let ShowNewDirBox = () => {
+    PubSub.publish('zIndexTo',0)
     isShowNewDirBox.value = true
     isShowMenu.value = false
 }
@@ -113,6 +117,11 @@ const showMenu = (item) => {
         clearTimeout(timer)
         timer = null
     },10)
+    if(item){
+        PubSub.publish('zIndexTo',0)
+    } else {
+        PubSub.publish('zIndexTo',1)
+    }
 }
 
 onMounted(()=>{
@@ -148,8 +157,8 @@ onMounted(()=>{
     }
     .upload_menu{
         position: fixed;
-        top: 0px;
-        right: 100px;
+        top: 50px;
+        right: 70px;
         width: 150px;
         background-color: #fff;
         z-index: 9999;

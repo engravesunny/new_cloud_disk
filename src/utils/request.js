@@ -16,11 +16,14 @@ const request = axios.create({
     withCredentials: true
 })
 
+// 表单请求api列表
+const formDataAPI = ['/file/createWithFolders','/file/upload','/file/chunk/upload/prepare','/file/chunk/upload','/user/avatar']
+
 // 请求拦截
 request.interceptors.request.use(config => {
     if(userInfo.value.token){
         config.headers['Authorization'] = userInfo.value.token
-        if(config.url === '/file/upload'||config.url === '/file/chunk/upload/prepare'||config.url === '/file/chunk/upload'){
+        if(formDataAPI.indexOf(config.url)>-1){
             config.headers['Content-Type'] = 'multipart/form-data'
         } else if(config.url==='/file/download') {
             console.log('下载');

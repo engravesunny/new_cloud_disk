@@ -99,7 +99,7 @@ let previewUrl = ref('')
 let previewMode = ref(0)
 let filename = ref('')
 onMounted(()=>{
-    previewMode.value = isToPreview(props.previewFile.filename)
+    previewMode.value = isToPreview(props.previewFile.name)
     console.log(previewMode.value);
     if(previewMode.value){
         previewUrl.value = props.previewFile.url
@@ -158,6 +158,7 @@ let option = (type) => {
             .main{
                 flex: 1;
                 width: 100%;
+                min-height: 100px;
                 .img{
                     width: 70vw;
                     text-align: center;
