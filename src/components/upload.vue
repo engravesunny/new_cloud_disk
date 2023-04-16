@@ -1,28 +1,26 @@
 <template>
     <div class="upload">
-        <el-button style="z-index:2;" class="btn iconfont" @click="showMenu(1)">+</el-button>
-        <div v-if="isShowMenu" @click="showMenu(0)"  style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;">
-            <el-card v-if="isShowMenu" class="upload_menu" :style="{height:`${element_height}px`}" body-style="padding:10px">
-                <div @click.stop="">
-                    <el-upload
-                        class="upload_doc iconfont"
-                        :limit="1"
-                        :before-upload="uploadDoc"
-                        :show-file-list="false">
-                        &#xe876; 点击上传
-                    </el-upload>
+        <el-button ref="uploadBtn" style="z-index:2;" class="btn iconfont" @click="showMenu(1)">+</el-button>
+        <el-card v-if="isShowMenu" ref="menu" class="upload_menu" :style="{height:`${element_height}px`,top:`${element_top}px`,right:`${element_right}px`}" body-style="padding:10px">
+            <div @click.stop="">
+                <el-upload
+                    class="upload_doc iconfont"
+                    :limit="1"
+                    :before-upload="uploadDoc"
+                    :show-file-list="false">
+                    &#xe876; 点击上传
+                </el-upload>
 
-                </div>
-                <div class="new_dir iconfont" @click.stop="ShowNewDirBox">&#xe636; 新建文件夹</div>
-            </el-card>
-        </div>
+            </div>
+            <div class="new_dir iconfont" @click.stop="ShowNewDirBox">&#xe636; 新建文件夹</div>
+        </el-card>
         <!-- 功能弹窗 -->
-        <el-card v-if="isShowNewDirBox" class="dialog">
+        <el-card  v-if="isShowNewDirBox" class="dialog">
             <div class="title">
                 新建文件夹
             </div>
             <div class="name">
-                <el-input v-model="dir_name" placeholder="新建文件夹"></el-input>
+                <el-input ref="input" autofocus v-model="dir_name" placeholder="新建文件夹"></el-input>
                 <div class="btns">
                     <el-button type="primary" @click="btnOk">确定</el-button>
                     <el-button @click="btnCancel">取消</el-button>
@@ -52,6 +50,11 @@ let isShowNewDirBox = ref(false)
 // 新建文件夹名称
 let dir_name = ref('')
 
+// 新建窗口
+let input = ref(null)
+
+let uploadBtn = ref(null)
+
 const uploadDoc = async(file) => {
     if(showPer.value){
         ElMessage('只能同时上传一个文件')
@@ -77,7 +80,6 @@ const btnOk = async() =>{
         name:dir_name.value||'新建文件夹',
         type:1
     })
-    console.log(res);
     if(res.data.code === 0){
         ElMessage({
             type:'success',
@@ -98,28 +100,63 @@ const btnCancel = () =>{
 }
 
 // 打开新建窗口
-let ShowNewDirBox = () => {
+let ShowNewDirBox = async() => {
     PubSub.publish('zIndexTo',0)
     isShowNewDirBox.value = true
     isShowMenu.value = false
+    let timer = setTimeout(()=>{
+        if(input?.value){
+            input.value.focus()
+        }
+    },10)
 }
+
+let menu = ref(null)
 
 let isShowMenu = ref(0)
 
 let element_height = ref(0)
+let element_right = ref(70)
+let element_top = ref(50)
 
 
-
-const showMenu = (item) => {
+const showMenu = (item,top=50,right=70) => {
     isShowMenu.value = item
     let timer = setTimeout(()=>{
-        item?element_height.value = 100:element_height.value = 0
+        if(item){
+            element_height.value = 100
+        } else {
+            element_height.value = 0
+        }
+        element_right.value = right
+        element_top.value = top
         clearTimeout(timer)
         timer = null
     },10)
     if(item){
         PubSub.publish('zIndexTo',0)
     } else {
+        PubSub.publish('zIndexTo',1)
+    }
+}
+
+
+// 右键唤醒
+let aliveControls = (e) => {
+    element_top.value = e.pageY
+    element_right.value = window.innerWidth - e.pageX - 148 
+    element_height.value = 0
+    isShowMenu.value = 0
+    showMenu(1,element_top.value,element_right.value)
+    PubSub.publish('zIndexTo',1)
+}
+
+// 点击右键box其他区域
+const handleDocumentClick = (e) => {
+    if(e.target === uploadBtn?.value?.$el || e.target === uploadBtn?.value?.$el?.children[0])return
+    if(isShowMenu.value && !menu.value.$el.contains(e.target)){
+        console.log(menu.value.$el.contains(e.target));
+        isShowMenu.value = 0
         PubSub.publish('zIndexTo',1)
     }
 }
@@ -133,6 +170,15 @@ onMounted(()=>{
         }
         
     })
+    PubSub.subscribe('aliveControls',(a,e)=>{
+        aliveControls(e)
+    })
+    PubSub.subscribe('closeMenu',()=>{
+        showMenu(0)
+        PubSub.publish('zIndexTo',0)
+    })
+    document.addEventListener('click',e=>handleDocumentClick(e))
+    document.addEventListener('contextmenu',e=>handleDocumentClick(e))
 })
 
 </script>
@@ -161,9 +207,9 @@ onMounted(()=>{
         right: 70px;
         width: 150px;
         background-color: #fff;
-        z-index: 9999;
+        z-index: 99999999;
         border-radius: 10px;
-        transition: all 0.3s;
+        transition: height 0.3s;
         .new_dir,.upload_dir{
             width: 90%;
             padding: 20px 0;

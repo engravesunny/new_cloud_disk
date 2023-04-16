@@ -40,7 +40,6 @@
   let handleDragOver = debounce((e) => {
     isShowDragTip.value = true
     e.preventDefault();
-    console.log('dragover event triggered');
   }, 200)
   
   let handleDrop = (e) => {
@@ -50,8 +49,6 @@
         timer2 = null
     },300)
     e.preventDefault();
-    console.log(e.dataTransfer.files)
-    console.log('drop event triggered');
     const files = e.dataTransfer.files;
     uploadDocs(files[0],props)
     // do something with the files, such as uploading to a server

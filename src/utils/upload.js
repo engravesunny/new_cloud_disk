@@ -5,7 +5,8 @@ import PubSub from 'pubsub-js';
 import { ElMessage } from 'element-plus';
 
 export const uploadDocs = async(file,props) => {
-    if(!file.type){
+    console.log(file);
+    if(!file.type&&!file.size&&!(file.name.indexOf('.')>-1)){
         ElMessage('请上传有效文件')
         return false
     }
@@ -26,8 +27,13 @@ export const uploadDocs = async(file,props) => {
         return false
     }
     PubSub.publish('updatePer',Number(10))
-    const hash = await md5ForChunks(file)
-    console.log('整个文件的md5',hash);
+    let hash = ''
+    try {
+        hash = await md5ForChunks(file)
+    } catch (error) {
+        ElMessage('请上传有效文件')
+        return false
+    }
     if(flag){
         // 是小文件
         const smallres = await newDirOrUploadSmall({
@@ -58,9 +64,13 @@ export const uploadDocs = async(file,props) => {
         PubSub.publish('updatePer',Number(cur))
         index = index + 0.5
         cur = cur+index
+        if(cur>=50){
+            index = 0
+        }
+        if(cur>=55){
+            index = 0
+        }
     }, 3000);
-    // 分片上传准备阶段
-    console.log('分片上传准备阶段');
 
     const res1 = await chunkUploadPrepare({
         file,
@@ -71,7 +81,6 @@ export const uploadDocs = async(file,props) => {
     clearInterval(timer)
     timer = null
     PubSub.publish('updatePer',Number(40))
-    console.log('分片准备阶段相应信息',res1);
     if(res1?.data?.msg){
         ElMessage(res1?.data?.msg)
         PubSub.publish('updatePer',false)
@@ -86,15 +95,10 @@ export const uploadDocs = async(file,props) => {
     let url_name = ''
 
     if(!res1.data.data.is_success){
-        console.log('未找到md5值');
         upload_id = res1.data.data.upload_id  
         url_name = res1.data.data.url_name  
         const chunks = createChunks(file,chunkSize)
-        console.log('分片',chunks);
         PubSub.publish('updatePer',Number(60))
-        console.log('准备阶段结束，开始分片上传');
-        console.log('存入信息',upload_id,url_name);
-        console.log('开始进行分片上传');
         let process = 60
         const promises = []
         let doSomething = (item) => {
@@ -116,7 +120,6 @@ export const uploadDocs = async(file,props) => {
                 part_objects.push(chunk)
                 PubSub.publish('updatePer',process+3)
                 process+=3
-                console.log('单个分片上传返回',res2);
             })
         }
         await chunks.map(async item=>{
@@ -124,14 +127,7 @@ export const uploadDocs = async(file,props) => {
         })
         await Promise.all(promises)
         PubSub.publish('updatePer',Number(80))
-        console.log('分片上传完成');
-        console.log('分片结束，开始整合');
-        console.log(1);
         part_objects.sort((a,b)=>a.part_number-b.part_number)
-        console.log(2);
-        console.log('part_obhect',part_objects);
-        console.log(3);
-        console.log('文件分片整合最终上传');
         const res3 = await chunkUploadComplete({
             url_name,
             upload_id,
@@ -142,7 +138,6 @@ export const uploadDocs = async(file,props) => {
             size:file.size
         })
         PubSub.publish('updatePer',Number(90))
-        console.log(res3);
         if(res3.data.code === 0){
             PubSub.publish('updatePer',Number(99))
             PubSub.publish('updatePer',false)

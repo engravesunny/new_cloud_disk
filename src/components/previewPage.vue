@@ -32,7 +32,7 @@
 
                 <!-- 不支持预览 -->
                 <div v-if="previewMode === 0" class="unPreview">
-                    <div class="text">该文件类型不支持预览</div>
+                    <div class="text">请您自行下载阅读该文件</div>
                 </div>
                 <!-- 不支持预览 -->
             </div>
@@ -90,7 +90,6 @@ let close = () => {
 // 判断是否加载完成
 
 let loadFinish = () => {
-    console.log(12111111);
     isLoading.value = false
 }
 
@@ -98,10 +97,9 @@ let loadFinish = () => {
 let previewUrl = ref('')
 let previewMode = ref(0)
 let filename = ref('')
-onMounted(()=>{
+onMounted(async()=>{
     previewMode.value = isToPreview(props.previewFile.name)
-    console.log(previewMode.value);
-    if(previewMode.value){
+    if(previewMode.value||previewMode.value===0){
         previewUrl.value = props.previewFile.url
     }
     filename.value = props.previewFile.filename
@@ -111,6 +109,8 @@ let option = (type) => {
     PubSub.publish('option',[type,props.previewFile])
     PubSub.publish('preview')
 }
+
+
 
 
 </script>

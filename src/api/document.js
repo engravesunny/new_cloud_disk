@@ -69,6 +69,14 @@ export const fileMove = data => request({
 })
 
 
+// 文件搜索
+
+export const docSearch = params => request({
+    url:'/file/searchWithFolders',
+    params
+})
+
+
 
 // -----------------------------------------------------------------------------------------
 

@@ -9,16 +9,18 @@ import Inspect from 'vite-plugin-inspect'
 const pathSrc = path.resolve(__dirname, 'src')
 
 export default defineConfig({
+  base:'./',
   server:{
-    port: 4000,
+    port: 3000,
+    host:'0.0.0.0',
     proxy: {
       '/api': {
-        target: 'http://10.4.24.12:8888/',
-        // target: 'http://192.168.110.74:8888/',
+        target: 'http://106.15.58.0:8888/',
+        // target: 'http://10.4.24.12:8888/',
         ws: true,
         changeOrigin: true,
         // rewrite: (path) => path.replace(/^\/api/, ''),
-      },
+    }
     }
   },
   resolve: {

@@ -27,11 +27,9 @@ const router = useRouter()
 
 onMounted(()=>{
     if(!userInfo.value){
-        console.log(userInfo.value);
     } else {
         if(localStorage.getItem('user_info')){
             userInfo.value = JSON.parse(localStorage.getItem('user_info'))
-            console.log(userInfo.value);
         } else {
             router.push('/login')
         }

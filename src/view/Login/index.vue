@@ -217,7 +217,7 @@ const login = async() => {
         userInfo.value.capacity = res.data.data.capacity
         userInfo.value.email = res.data.data.email
         setUserInfo()
-        router.push('/home')
+        router.push('/doc')
     } catch (error) {
         ElMessage('登陆失败')
         console.log(error);
@@ -231,7 +231,6 @@ const sendCode = async() => {
         const res =await sendTheCode({
             email:signForm.email
         })
-        console.log(res);
         if(res.data.code===0){
             ElMessage({
             type:'success',
@@ -259,7 +258,6 @@ const sign = async() => {
             code:signForm.code,
             email:signForm.email
         })
-        console.log(res);
         if(res.data.code===0){
             ElMessage({
                 type:'success',

@@ -12,10 +12,6 @@ declare module '@vue/runtime-core' {
     DragUpload: typeof import('./components/dragUpload.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
-    ElCheckbox: typeof import('element-plus/es')['ElCheckbox']
-    ElForm: typeof import('element-plus/es')['ElForm']
-    ElFormItem: typeof import('element-plus/es')['ElFormItem']
-    ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElProgress: typeof import('element-plus/es')['ElProgress']
@@ -28,6 +24,7 @@ declare module '@vue/runtime-core' {
     PreviewPage: typeof import('./components/previewPage.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SearchDoc: typeof import('./components/searchDoc.vue')['default']
     Upload: typeof import('./components/upload.vue')['default']
   }
   export interface ComponentCustomProperties {

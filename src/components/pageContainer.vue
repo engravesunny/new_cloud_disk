@@ -1,7 +1,8 @@
 <template>
     <el-scrollbar>
-    <div class="container">
+    <div class="container" @contextmenu.prevent="aliveControls($event)">
         <div class="top" :style="{zIndex:zIndex}">
+            <div class="left iconfont"> <span class="icon">&#xe63f;</span> 支持预览媒体文件</div>
             <div class="right">
                 <el-select @change="getDoc(currnetID)" v-model="sortType" class="select_box" placeholder="Select" size="small">
                     <el-option
@@ -22,7 +23,7 @@
             </div>
         </div>
         <!-- 页面内容展示 -->
-            <div v-loading="!doc_list.length&&!isEmpty" class="container_list">
+            <div v-loading="!doc_list.length&&!isEmpty" @contextmenu.stop="" class="container_list">
                 <div style="width:100%;height:100%;">
                     <ul>
                         <li
@@ -32,6 +33,7 @@
                         v-for="(item,index) in doc_list"
                         :key="index"
                         @click="docFn(item)"
+                        @contextmenu.stop=""
                         @contextmenu.prevent="$event =>showOptions($event,item)"   >
                             <div class="icon iconfont">{{item.type === 1? `&#xe6ea;` :getFileIcon(item.name)}}</div>
                             <div class="name shenglue2">{{item.filename||item.name}}</div>
@@ -61,7 +63,7 @@
             <div class="title">重命名</div>
             <div class="input">
                 <!-- <el-input :placeholder="target[0].filename||target[0].name||''"></el-input> -->
-                <el-input v-model="newname" :placeholder="target[0]?.name?.split('.')[0]||target[0].name||''"></el-input><span v-if="target[0].type === 2">{{ '.'+getFileExtension(target[0].name) }}</span>
+                <el-input ref="input" autofocus v-model="newname" :placeholder="target[0]?.name?.split('.')[0]||target[0].name||''"></el-input><span v-if="target[0].type === 2">{{ '.'+getFileExtension(target[0].name) }}</span>
             </div>
             <div class="btn">
                 <el-button @click="renameBtnOk" type="primary">确认</el-button>
@@ -96,7 +98,7 @@ import 'animate.css'
 import PubSub from 'pubsub-js'
 import { transform } from '@/utils/transform.js'
 import { getFileIcon } from '@/utils/icon.js'
-import { delFile,download_doc,renameDoc,fileMove,getFileListPlus,allDir } from '@/api/document.js'
+import { delFile,download_doc,renameDoc,fileMove,getFileListPlus,allDir,docSearch } from '@/api/document.js'
 import axios from 'axios'
 const router = useRouter()
 const route = useRoute()
@@ -133,10 +135,10 @@ const showOptions = (e,item) => {
     }
     target.push(item)
     isShowOption.value = false
-    console.log(e,item);
     top.value = e.pageY
     left.value = e.pageX
     isShowOption.value = true
+    PubSub.publish('closeMenu')
 }
 
 
@@ -149,7 +151,6 @@ const download = async() => {
     const data = target[0]
     loading.value = data.id
     loadingText.value = '正在下载'
-
     ElMessage('正在下载')
     isShowOption.value = false
     try {
@@ -157,7 +158,14 @@ const download = async() => {
             file_id:data.id,
             type:2
         })
-        console.log(res);
+        const file_name1 = data.name
+        const file_name = decodeURIComponent(file_name1);
+        const url = window.URL.createObjectURL(new Blob([res.data],{ type: "application/vnd.ms-excel" }));
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download',file_name)
+        document.body.appendChild(link)
+        link.click()
         ElMessage({
                 type:'success',
                 message:'下载成功'
@@ -165,6 +173,7 @@ const download = async() => {
         loading.value = false
         loadingText.value = '下载成功'
     } catch (error) {
+        console.log(error);
         ElMessage('下载失败')
         loading.value = false
     }
@@ -202,12 +211,12 @@ function getFileExtension(filename) {
 const renameBtnOk = async() => {
     if(newname.value === ''){
         ElMessage('文件名不能为空')
+        return
     }
     let data = target[0]
     loading.value = data.id
     loadingText.value = '重命名中'
 
-    console.log(data);
     try {
         const res = await renameDoc({
             file_id:data.id,
@@ -228,7 +237,11 @@ const renameBtnOk = async() => {
     } catch (error) {
         ElMessage('操作失败')
     }
-    PubSub.publish('updateDoc')
+    if(srText){
+        await getSearchResult(srText)
+    } else {
+        PubSub.publish('updateDoc')
+    }
     loading.value = false
     loadingText.value = ''
     renameBtnCancel()
@@ -236,20 +249,25 @@ const renameBtnOk = async() => {
 
 // 取消重命名
 const renameBtnCancel = () => {
-    PubSub.publish('zIndexTo',0)
+    PubSub.publish('zIndexTo',1)
     isShowRenameBox.value = false
     newname.value = ''
 }
 
 // 是否展示newnamebox
 let isShowRenameBox = ref(false)
-
+let input = ref(null)
 // 新名字
 let newname = ref('')
 const rename = () => {
     PubSub.publish('zIndexTo',0)
     isShowOption.value = false 
     isShowRenameBox.value = true
+    let timer = setTimeout(()=>{
+        if(input?.value){
+            input.value.focus()
+        }
+    },10)
 }
 
 // 移动
@@ -263,11 +281,9 @@ const defaultProps = {
 }
 const btnMoveOk = async() => {
     let data = target[0]
-    console.log('data',data);
     loading.value = data.id
     loadingText.value = '文件移动中'
 
-    console.log(data);
     try {
         const res = await fileMove({
             file_id:data.id,
@@ -275,20 +291,23 @@ const btnMoveOk = async() => {
             to_parent_id:currentMoveId.value,
             name:data.name
         })
-        console.log(res);
         if(res.data.code === 0){
             ElMessage({
                 type:'success',
                 message:'文件移动成功'
             })
-            PubSub.publish('updateDoc')
+            if(srText){
+                await getSearchResult(srText)
+            } else {
+                PubSub.publish('updateDoc')
+            }
         } else {
             ElMessage(res?.data?.msg)
         }        
         loading.value = false
         loadingText.value = ''
+        currentMoveId.value = 0
     } catch (error) {
-        console.log('操作失败');
         loading.value = false
         loadingText.value = ''
     }
@@ -298,6 +317,7 @@ const btnMoveCancel = () => {
     zIndex.value = 1
     treeDir.pop()
     isShowMoveBox.value = false
+    currentMoveId.value = 0
 }
 
 // 点击某一结点
@@ -312,16 +332,13 @@ const move = async() => {
         treeDir.pop()
     }
     const res = await allDir()
-    console.log('所有文件夹',res);
     res.data.data.folders.map(item=>{
         dirList.push(item)
     })
-    console.log(dirList);
     const tree = transform(dirList,0)
-    console.log(tree);
     treeDir.push(tree)
-    console.log(treeDir[0]);
 }
+
 
 // 删除
 const delDoc = async() => {
@@ -336,7 +353,6 @@ const delDoc = async() => {
     deleteList.push(target[0].id)
     loadingText.value = '删除中'
 
-    console.log(data);
     try {
         const res = await delFile({
             file_id:data.id
@@ -347,7 +363,11 @@ const delDoc = async() => {
                 type:'success',
                 message:'删除成功'
             })
-            PubSub.publish('updateDoc')
+            if(srText){
+                await getSearchResult(srText)
+            } else {
+                PubSub.publish('updateDoc')
+            }
             const index = deleteList.indexOf(id)
             deleteList.splice(index, 1)
             loadingText.value = ''
@@ -355,7 +375,11 @@ const delDoc = async() => {
             ElMessage({
                 message:res.data.msg
             })
-            PubSub.publish('updateDoc')
+            if(srText){
+                await getSearchResult(srText)
+            } else {
+                PubSub.publish('updateDoc')
+            }
             const index = deleteList.indexOf(id)
             deleteList.splice(index, 1)
             loadingText.value = ''
@@ -401,13 +425,6 @@ const id = route.query.id || 0
 // 排序类型
 let sortType = ref('name')
 let sortSc = ref('ASC')
-// name
-// size
-// udpated_at
-// created_at
-
-// ASC
-// DESC
 // 排序类型表格
 const options1 = reactive([
   {
@@ -448,14 +465,23 @@ const getDoc = async(parant_id=0) => {
     if(!data?.data?.files?.length){
         isEmpty.value = true
     }
-    console.log(data);
     data?.data?.files?.map(item=>{
         doc_list.push(item)
     })
 }
 
+// 右键空白区域
+const aliveControls = (e) => {
+    console.log(e);
+    PubSub.publish('aliveControls',e)
+}
+
 onMounted(async()=>{
-    await getDoc(id)
+    if(!srText){
+        await getDoc(id)
+    } else {
+        await getSearchResult(srText)
+    }
     PubSub.subscribe('zIndexTo',(a,num)=>{
         zIndex.value = num
     })
@@ -467,7 +493,6 @@ onMounted(async()=>{
             target.pop()
         }
         target.push(item[1])
-        console.log(target[0]);
         if(item[0] === 1){
             // download
             await download()
@@ -488,13 +513,38 @@ onMounted(async()=>{
         }
     })
     document.addEventListener('click',e=>handleDocumentClick(e))
+    document.addEventListener('contextmenu',e=>handleDocumentClick(e))
 })
+
+// 搜索关键词
+let srText = route.query.searchText || ''
+
+let getSearchResult = async(searchText) => {
+    doc_list.splice(0,doc_list.length)
+    const {data} = await docSearch({
+        keyword:searchText
+    })
+    console.log(data);
+    if(!data?.data?.files?.length){
+        isEmpty.value = true
+    }
+    data?.data?.files?.map(item=>{
+        doc_list.push(item)
+    })
+}
+
+
 
 let currnetID = ref(0)
 
 watch(()=>route,(val)=>{
-    currnetID.value = val.query.id
-    getDoc(val.query.id)
+    if(!val.query.searchText){
+        currnetID.value = val.query.id || 0
+        getDoc(val.query.id)
+    } else if(val.query.searchText){
+        srText = val.query.searchText
+        getSearchResult(srText)
+    }
 },{
     deep:true
 })
@@ -583,6 +633,16 @@ watch(()=>route,(val)=>{
             display: flex;
             flex-direction: column;
             .top{
+                .left{
+                    float: left;
+                    padding-left: 40px;
+                    color: gray;
+                    font-weight: 100;
+                    font-size: 12px;
+                    .icon{
+                        font-size: 14px;
+                    }
+                }
                 width: 100%;
                 height: 30px;
                 // background-color: pink;
@@ -608,13 +668,12 @@ watch(()=>route,(val)=>{
                     flex-wrap: wrap;
                 }
                 li{
-                    width: 120px;
+                    width: 160px;
                     display:flex ;
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
-                    margin: 20px;
-                    padding: 5px 10px;
+                    padding: 25px 10px;
                     border-radius: 10px;
                     .icon{
                         font-size: 80px;

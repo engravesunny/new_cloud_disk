@@ -1,5 +1,4 @@
 export const createChunks = (file,chunkSize) => {
-    console.log('开始');
     let start = 0
     var fileSize = file.size
     let end = 0

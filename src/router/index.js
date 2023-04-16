@@ -1,18 +1,18 @@
 import { ElMessage } from "element-plus";
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory } from "vue-router";
 
 
 const routes = [
     {
-        path: '/',
+        path: '/drive',
         name: 'layout',
-        redirect: '/home',
+        redirect: '/doc',
         component: ()=>import('@/view/Layout/index.vue'),
         children:[
             {
-                path:"/home",
-                name:'home',
-                component:()=>import('@/view/Home/index.vue')
+                path:"/doc",
+                name:"doc",
+                component:()=>import('@/view/Doc/index.vue')
             }
         ]
     },
@@ -20,11 +20,16 @@ const routes = [
         path:"/login",
         name:'login',
         component:()=>import('@/view/Login/index.vue')
+    },
+    {
+        path:"/",
+        name:'home',
+        component:()=>import('@/view/Home/index.vue')
     }
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHashHistory(),
     routes
 });
 
@@ -33,12 +38,17 @@ const router = createRouter({
 router.beforeEach((to,from,next)=>{
     if(to.fullPath !== '/login'){
         // 未登录
-        if(!localStorage.getItem('user_info')){
-            ElMessage('请先登录')
-            next('/login')
+        if(to.fullPath === '/'){
+            next();
         } else {
-            next()
+            if(!localStorage.getItem('user_info')){
+                ElMessage('请先登录')
+                next('/login')
+            } else {
+                next()
+            }
         }
+        
     }else {
         next()
     }
