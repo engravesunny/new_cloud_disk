@@ -1,6 +1,6 @@
 <template>
     <div class="sidebar_container unselectable">
-            <!-- logo部分 -->
+        <!-- logo部分 -->
         <div class="logo">
             <div class="logo_img">
                 <img src="../../../../assets/img/clouddisk.png" alt="">
@@ -9,7 +9,7 @@
             <div class="type">桌面端</div>
         </div>
         <!-- logo部分 -->
-        
+
         <!-- 功能按钮区域 -->
         <div class="option_btn">
             <ul>
@@ -27,7 +27,7 @@
                 </li>
                 <li>
                     <div class="icon iconfont">&#xe6f8;</div>
-                    <div class="name">密码箱(未开发)</div>   
+                    <div class="name">密码箱(未开发)</div>
                 </li>
                 <li>
                     <div class="icon iconfont">&#xe66e;</div>
@@ -49,12 +49,7 @@
 
             <div class="user_detail">
                 <div v-if="avatar" class="user_avatar">
-                    <el-upload
-                        class="elUpload"
-                        action="#"
-                        :show-file-list="false"
-                        :before-upload="uploadAvatar"
-                    >
+                    <el-upload class="elUpload" action="#" :show-file-list="false" :before-upload="uploadAvatar">
                         <img :src="avatar" alt="" title="更改头像">
                     </el-upload>
                 </div>
@@ -81,12 +76,12 @@
 </template>
 
 <script setup>
-import  { setUserInfo } from "@/utils/setLocalStorage" 
-import { updateAvatar,getUserInfo } from '@/api/user'
-import { Capacity } from '../../../../utils/computed';
-import { user } from '@/store/user'
+import { setUserInfo } from "@/utils/setLocalStorage"
+import { updateAvatar, getUserInfo } from '@/api/user'
+import { user } from '../../../../store/user'
 import { storeToRefs } from 'pinia'
-const userStore = user()
+import pinia from "../../../../store";
+const userStore = user(pinia)
 let { userInfo } = storeToRefs(userStore)
 
 let isShowOption = ref(false)
@@ -95,9 +90,9 @@ let showOption = () => {
     isShowOption.value = !isShowOption.value
 }
 
-let logout = () => {
-    localStorage.removeItem('user_info')
-    router.push('/login')
+let logout = async () => {
+    await userStore.clearInfo()
+    location.replace('/#/login')
 }
 
 
@@ -106,11 +101,11 @@ let avatar = ref('')
 let percentage = ref(0)
 
 let loadUserInfo = () => {
-    if(userInfo.value.token){
+    if (userInfo.value.token) {
         username.value = userInfo.value.username
         avatar.value = userInfo.value.avatar
     } else {
-        if(localStorage.getItem('user_info')){
+        if (localStorage.getItem('user_info')) {
             userInfo.value = JSON.parse(localStorage.getItem('user_info'))
             username.value = userInfo.value.username
             avatar.value = userInfo.value.avatar
@@ -133,17 +128,17 @@ let updateUserInfo = async () => {
     setUserInfo()
 }
 
-let uploadAvatar = async(file) => {
+let uploadAvatar = async (file) => {
     try {
         ElMessage('正在上传头像')
-        const {data} = await updateAvatar({
-            avatar,file
+        const { data } = await updateAvatar({
+            avatar, file
         })
-        if(data.code === 0){
+        if (data.code === 0) {
             await updateUserInfo()
             ElMessage({
-                type:'success',
-                message:'头像更新成功'
+                type: 'success',
+                message: '头像更新成功'
             })
             router.go(0)
         } else {
@@ -155,14 +150,14 @@ let uploadAvatar = async(file) => {
     return false
 }
 
-onMounted(()=>{
+onMounted(() => {
     loadUserInfo()
 })
 
 </script>
 
 <style lang="less" scoped>
-.marked{
+.marked {
     width: 100vw;
     height: 100vh;
     position: fixed;
@@ -170,7 +165,8 @@ onMounted(()=>{
     left: 0;
     z-index: 999999;
 }
-.option{
+
+.option {
     position: fixed;
     bottom: 80px;
     left: 210px;
@@ -180,7 +176,9 @@ onMounted(()=>{
     box-shadow: 1px 1px 10px 2px rgba(0, 0, 0, 0.1);
     padding: 10px;
     border-radius: 10px;
-    .btn1,.btn2{
+
+    .btn1,
+    .btn2 {
         width: 100%;
         height: 30px;
         line-height: 30px;
@@ -189,61 +187,74 @@ onMounted(()=>{
         cursor: pointer;
         z-index: 9999;
     }
-    .btn1:hover,.btn2:hover{
+
+    .btn1:hover,
+    .btn2:hover {
         background-color: #e0dede;
     }
 }
-.sidebar_container{
+
+.sidebar_container {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
     background-color: #f5f5f6;
-    .logo{
+
+    .logo {
         width: 100%;
         height: 96px;
         padding: 36px 16px 36px 24px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        .logo_img{
+
+        .logo_img {
             width: 25px;
             height: 25px;
-            img{
+
+            img {
                 width: 100%;
                 height: 100%;
             }
         }
-        .logo_name{
+
+        .logo_name {
             padding-left: 10px;
             flex: 1;
             font-weight: 700;
             font-size: 18px;
         }
-        .type{
+
+        .type {
             background-color: #e3e3e5;
             padding: 2px 4px;
             border-radius: 5px;
             font-size: 14px;
         }
     }
-    .user_info{
+
+    .user_info {
         width: 100%;
         height: 100px;
-        .rest_capacity{
+
+        .rest_capacity {
             box-sizing: border-box;
             width: 100%;
             height: 60px;
             padding-left: 15px;
-            .num_display{
+
+            .num_display {
                 margin-bottom: 10px;
                 font-size: 10px;
             }
-            .process_display{
+
+            .process_display {
                 width: 90%;
             }
         }
-        .user_detail{
+
+        .user_detail {
             border-top: 1px solid rgba(0, 0, 0, 0.1);
             box-sizing: border-box;
             width: 100%;
@@ -251,27 +262,31 @@ onMounted(()=>{
             display: flex;
             justify-content: space-between;
             align-items: center;
-            .user_avatar{
+
+            .user_avatar {
                 width: 20%;
                 height: 50%;
                 text-align: center;
                 line-height: 50px;
-                .elUpload{
+
+                .elUpload {
                     width: 100%;
                     height: 100%;
                     text-align: center;
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    img{
+
+                    img {
                         border-radius: 50%;
                         width: 35px;
                         height: 35px;
                     }
                 }
-                
+
             }
-            .user_name{
+
+            .user_name {
                 box-sizing: border-box;
                 flex: 1;
                 height: 50%;
@@ -280,24 +295,29 @@ onMounted(()=>{
                 line-height: 50px;
                 padding-left: 10px;
             }
-            .controles{
+
+            .controles {
                 width: 20%;
-                height: 50%;                
+                height: 50%;
                 text-align: center;
                 line-height: 50px;
                 cursor: pointer;
-                .icon{
+
+                .icon {
                     font-size: 23px;
                 }
             }
         }
     }
-    .option_btn{
+
+    .option_btn {
         width: 100%;
         flex: 1;
-        ul{
+
+        ul {
             width: 100%;
-            li{
+
+            li {
                 box-sizing: border-box;
                 margin: 10px;
                 padding: 15px;
@@ -307,22 +327,25 @@ onMounted(()=>{
                 width: 90%;
                 border-radius: 10px;
                 transition: all 0.5s;
-                .icon{
+
+                .icon {
                     font-size: 20px;
                     padding-right: 12px;
                 }
-                .name{
+
+                .name {
                     font-size: 14px;
                 }
             }
-            li:hover{
+
+            li:hover {
                 background-color: #e3e3e5;
             }
-            .active{
+
+            .active {
                 background-color: #e3e3e5;
             }
         }
     }
 }
-    
 </style>

@@ -1,55 +1,43 @@
 <template>
     <el-scrollbar>
-    <div class="container" @contextmenu.prevent="aliveControls($event)">
-        <div class="top" :style="{zIndex:zIndex}">
-            <div class="left iconfont"> <span class="icon">&#xe63f;</span> 支持预览媒体文件</div>
-            <div class="right">
-                <el-select @change="getDoc(currnetID)" v-model="sortType" class="select_box" placeholder="Select" size="small">
-                    <el-option
-                    v-for="item in options1"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                    />
-                </el-select>
-                <el-select @change="getDoc(currnetID)" v-model="sortSc" class="select_box" placeholder="Select" size="small">
-                    <el-option
-                    v-for="item in options2"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                    />
-                </el-select>
+        <div class="container" @contextmenu.prevent="aliveControls($event)">
+            <div class="top" :style="{ zIndex: zIndex }">
+                <div class="left iconfont"> <span class="icon">&#xe63f;</span> 支持预览媒体文件</div>
+                <div class="right">
+                    <el-select @change="getDoc(currnetID)" v-model="sortType" class="select_box" placeholder="Select"
+                        size="small">
+                        <el-option v-for="item in options1" :key="item.value" :label="item.label" :value="item.value" />
+                    </el-select>
+                    <el-select @change="getDoc(currnetID)" v-model="sortSc" class="select_box" placeholder="Select"
+                        size="small">
+                        <el-option v-for="item in options2" :key="item.value" :label="item.label" :value="item.value" />
+                    </el-select>
+                </div>
             </div>
-        </div>
-        <!-- 页面内容展示 -->
-            <div v-loading="!doc_list.length&&!isEmpty" @contextmenu.stop="" class="container_list">
+            <!-- 页面内容展示 -->
+            <div v-loading="!doc_list.length && !isEmpty" @contextmenu.stop="" class="container_list">
                 <div style="width:100%;height:100%;">
                     <ul>
-                        <li
-                        :style="{zIndex:zIndex}"
-                        :element-loading-text="loadingText" 
-                        v-loading="loading ===item.id||deleteList.indexOf(item.id)>-1"
-                        v-for="(item,index) in doc_list"
-                        :key="index"
-                        @click="docFn(item)"
-                        @contextmenu.stop=""
-                        @contextmenu.prevent="$event =>showOptions($event,item)"   >
-                            <div class="icon iconfont">{{item.type === 1? `&#xe6ea;` :getFileIcon(item.name)}}</div>
-                            <div class="name shenglue2">{{item.filename||item.name}}</div>
+                        <li :style="{ zIndex: zIndex }" :element-loading-text="loadingText"
+                            v-loading="loading === item.id || deleteList.indexOf(item.id) > -1"
+                            v-for="(item, index) in doc_list" :key="index" @click="docFn(item)" @contextmenu.stop=""
+                            @contextmenu.prevent="$event => showOptions($event, item)">
+                            <div class="icon iconfont">{{ item.type === 1 ? `&#xe6ea;` : getFileIcon(item.name) }}</div>
+                            <div class="name shenglue2">{{ item.filename || item.name }}</div>
                             <div class="time">{{ timeToDate(item.updated_at) }}</div>
-                        </li> 
+                        </li>
                     </ul>
                 </div>
             </div>
 
             <!-- 拖拽上传 -->
             <dragUpload :currnetID="currnetID"></dragUpload>
-        <!-- 页面内容展示 -->
+            <!-- 页面内容展示 -->
         </div>
         <!-- 右键菜单 -->
-        <el-card ref="option" v-if="isShowOption" :style="{position:'fixed',top:top+'px',left:left+'px'}" class="option animate" body-style="padding:0;">
-            <div class="option_item" v-if="target[0].type===2" @click="download">下载</div>
+        <el-card ref="option" v-if="isShowOption" :style="{ position: 'fixed', top: top + 'px', left: left + 'px' }"
+            class="option animate" body-style="padding:0;">
+            <div class="option_item" v-if="target[0].type === 2" @click="download">下载</div>
             <div class="option_item" @click="share">分享</div>
             <div class="option_item" @click="like">收藏</div>
             <div class="option_item" @click="rename">重命名</div>
@@ -59,11 +47,13 @@
         <!-- 右键菜单 -->
 
         <!-- 重命名窗口 -->
-        <el-card v-if="isShowRenameBox"  class="rename_box animate">
+        <el-card v-if="isShowRenameBox" class="rename_box animate">
             <div class="title">重命名</div>
             <div class="input">
                 <!-- <el-input :placeholder="target[0].filename||target[0].name||''"></el-input> -->
-                <el-input ref="input" autofocus v-model="newname" :placeholder="target[0]?.name?.split('.')[0]||target[0].name||''"></el-input><span v-if="target[0].type === 2">{{ '.'+getFileExtension(target[0].name) }}</span>
+                <el-input ref="input" autofocus v-model="newname"
+                    :placeholder="target[0]?.name?.split('.')[0] || target[0].name || ''"></el-input><span
+                    v-if="target[0].type === 2">{{ '.' + getFileExtension(target[0].name) }}</span>
             </div>
             <div class="btn">
                 <el-button @click="renameBtnOk" type="primary">确认</el-button>
@@ -91,15 +81,14 @@
 </template>
 
 <script setup>
-import {timeToDate} from '../utils/timeToDate.js'
+import { timeToDate } from '../utils/timeToDate.js'
 import previewPage from './previewPage.vue'
 import dragUpload from './dragUpload.vue'
 import 'animate.css'
 import PubSub from 'pubsub-js'
 import { transform } from '@/utils/transform.js'
 import { getFileIcon } from '@/utils/icon.js'
-import { delFile,download_doc,renameDoc,fileMove,getFileListPlus,allDir,docSearch } from '@/api/document.js'
-import axios from 'axios'
+import { delFile, download_doc, renameDoc, fileMove, getFileListPlus, allDir, docSearch } from '@/api/document.js'
 const router = useRouter()
 const route = useRoute()
 let doc_list = reactive([])
@@ -120,7 +109,7 @@ let option = ref(null)
 // 监听左键点击事件
 const handleDocumentClick = (e) => {
 
-    if(isShowOption.value && !option.value.$el.contains(e.target)){
+    if (isShowOption.value && !option.value.$el.contains(e.target)) {
         isShowOption.value = false
         zIndex.value = 1
     }
@@ -128,9 +117,9 @@ const handleDocumentClick = (e) => {
 // 右键位置
 let top = ref(0)
 let left = ref(0)
-const showOptions = (e,item) => {
+const showOptions = (e, item) => {
     zIndex.value = 0
-    if(target.length){
+    if (target.length) {
         target.pop()
     }
     target.push(item)
@@ -146,7 +135,7 @@ const showOptions = (e,item) => {
 // 右键菜单点击事件
 
 // 下载
-const download = async() => {
+const download = async () => {
     zIndex.value = 1
     const data = target[0]
     loading.value = data.id
@@ -155,20 +144,20 @@ const download = async() => {
     isShowOption.value = false
     try {
         const res = await download_doc({
-            file_id:data.id,
-            type:2
+            file_id: data.id,
+            type: 2
         })
         const file_name1 = data.name
         const file_name = decodeURIComponent(file_name1);
-        const url = window.URL.createObjectURL(new Blob([res.data],{ type: "application/vnd.ms-excel" }));
+        const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/vnd.ms-excel" }));
         const link = document.createElement('a')
         link.href = url
-        link.setAttribute('download',file_name)
+        link.setAttribute('download', file_name)
         document.body.appendChild(link)
         link.click()
         ElMessage({
-                type:'success',
-                message:'下载成功'
+            type: 'success',
+            message: '下载成功'
         })
         loading.value = false
         loadingText.value = '下载成功'
@@ -190,26 +179,26 @@ const like = () => {
 // 重命名
 // 取后缀
 function getFileExtension(filename) {
-  // 如果传入的不是字符串，返回空字符串
-  if (typeof filename !== "string") {
-    return "";
-  }
+    // 如果传入的不是字符串，返回空字符串
+    if (typeof filename !== "string") {
+        return "";
+    }
 
-  // 获取最后一个点号的位置
-  const lastDotIndex = filename.lastIndexOf(".");
+    // 获取最后一个点号的位置
+    const lastDotIndex = filename.lastIndexOf(".");
 
-  // 如果文件名不包含点号，或者最后一个点号在文件名的开头，返回空字符串
-  if (lastDotIndex === -1 || lastDotIndex === 0) {
-    return "";
-  }
+    // 如果文件名不包含点号，或者最后一个点号在文件名的开头，返回空字符串
+    if (lastDotIndex === -1 || lastDotIndex === 0) {
+        return "";
+    }
 
-  // 获取文件后缀并返回
-  return filename.slice(lastDotIndex + 1);
+    // 获取文件后缀并返回
+    return filename.slice(lastDotIndex + 1);
 }
 
 // 确认重命名
-const renameBtnOk = async() => {
-    if(newname.value === ''){
+const renameBtnOk = async () => {
+    if (newname.value === '') {
         ElMessage('文件名不能为空')
         return
     }
@@ -219,25 +208,25 @@ const renameBtnOk = async() => {
 
     try {
         const res = await renameDoc({
-            file_id:data.id,
-            new_name:data.type===1?newname.value:newname.value+'.'+getFileExtension(data.name),
-            type:data.type,
-            parent_id:data.parent_id
+            file_id: data.id,
+            new_name: data.type === 1 ? newname.value : newname.value + '.' + getFileExtension(data.name),
+            type: data.type,
+            parent_id: data.parent_id
         })
-        if(res.data.code === 0){
+        if (res.data.code === 0) {
             ElMessage({
-                type:'success',
-                message:'重命名成功'
+                type: 'success',
+                message: '重命名成功'
             })
         } else {
             ElMessage({
-                message:res?.data?.msg
+                message: res?.data?.msg
             })
         }
     } catch (error) {
         ElMessage('操作失败')
     }
-    if(srText){
+    if (srText) {
         await getSearchResult(srText)
     } else {
         PubSub.publish('updateDoc')
@@ -249,7 +238,7 @@ const renameBtnOk = async() => {
 
 // 取消重命名
 const renameBtnCancel = () => {
-    PubSub.publish('zIndexTo',1)
+    PubSub.publish('zIndexTo', 1)
     isShowRenameBox.value = false
     newname.value = ''
 }
@@ -260,14 +249,14 @@ let input = ref(null)
 // 新名字
 let newname = ref('')
 const rename = () => {
-    PubSub.publish('zIndexTo',0)
-    isShowOption.value = false 
+    PubSub.publish('zIndexTo', 0)
+    isShowOption.value = false
     isShowRenameBox.value = true
-    let timer = setTimeout(()=>{
-        if(input?.value){
+    let timer = setTimeout(() => {
+        if (input?.value) {
             input.value.focus()
         }
-    },10)
+    }, 10)
 }
 
 // 移动
@@ -276,34 +265,34 @@ let isShowMoveBox = ref(false)
 let dirList = reactive([])
 const treeDir = reactive([])
 const defaultProps = {
-  children: 'children',
-  label: 'name',
+    children: 'children',
+    label: 'name',
 }
-const btnMoveOk = async() => {
+const btnMoveOk = async () => {
     let data = target[0]
     loading.value = data.id
     loadingText.value = '文件移动中'
 
     try {
         const res = await fileMove({
-            file_id:data.id,
-            type:data.type,
-            to_parent_id:currentMoveId.value,
-            name:data.name
+            file_id: data.id,
+            type: data.type,
+            to_parent_id: currentMoveId.value,
+            name: data.name
         })
-        if(res.data.code === 0){
+        if (res.data.code === 0) {
             ElMessage({
-                type:'success',
-                message:'文件移动成功'
+                type: 'success',
+                message: '文件移动成功'
             })
-            if(srText){
+            if (srText) {
                 await getSearchResult(srText)
             } else {
                 PubSub.publish('updateDoc')
             }
         } else {
             ElMessage(res?.data?.msg)
-        }        
+        }
         loading.value = false
         loadingText.value = ''
         currentMoveId.value = 0
@@ -321,32 +310,32 @@ const btnMoveCancel = () => {
 }
 
 // 点击某一结点
-const handleNodeClick = (node) =>{
+const handleNodeClick = (node) => {
     currentMoveId.value = node.id
 }
-const move = async() => {
+const move = async () => {
     dirList = reactive([])
     isShowOption.value = false
     isShowMoveBox.value = true
-    if(treeDir.length){
+    if (treeDir.length) {
         treeDir.pop()
     }
     const res = await allDir()
-    res.data.data.folders.map(item=>{
+    res.data.data.folders.map(item => {
         dirList.push(item)
     })
-    const tree = transform(dirList,0)
+    const tree = transform(dirList, 0)
     treeDir.push(tree)
 }
 
 
 // 删除
-const delDoc = async() => {
+const delDoc = async () => {
     isShowOption.value = false
     zIndex.value = 1
     let data = target[0]
     let id = target[0].id
-    if(deleteList.length){
+    if (deleteList.length) {
         ElMessage('上个文件还未删除成功')
         return false
     }
@@ -355,15 +344,15 @@ const delDoc = async() => {
 
     try {
         const res = await delFile({
-            file_id:data.id
+            file_id: data.id
         })
         isShowOption.value = false
-        if(res.data.code === 0){
+        if (res.data.code === 0) {
             ElMessage({
-                type:'success',
-                message:'删除成功'
+                type: 'success',
+                message: '删除成功'
             })
-            if(srText){
+            if (srText) {
                 await getSearchResult(srText)
             } else {
                 PubSub.publish('updateDoc')
@@ -373,9 +362,9 @@ const delDoc = async() => {
             loadingText.value = ''
         } else {
             ElMessage({
-                message:res.data.msg
+                message: res.data.msg
             })
-            if(srText){
+            if (srText) {
                 await getSearchResult(srText)
             } else {
                 PubSub.publish('updateDoc')
@@ -390,7 +379,7 @@ const delDoc = async() => {
         deleteList.splice(index, 1)
         loadingText.value = ''
     }
-}   
+}
 
 // 是否展示预览
 let isShowPreview = ref(false)
@@ -399,20 +388,20 @@ let isShowPreview = ref(false)
 let previewFile = reactive([])
 // 文件点击事件
 const docFn = (item) => {
-    if(item.type === 1){
+    if (item.type === 1) {
         // 为文件夹
         router.push({
-            path:'home',
-            query:{
-                id:item.id,
-                name:item.name
+            path: 'doc',
+            query: {
+                id: item.id,
+                name: item.name
             }
         })
     } else {
         // 为文件
         isShowPreview.value = true
         previewFile.push(item)
-        PubSub.subscribe('preview',()=>{
+        PubSub.subscribe('preview', () => {
             isShowPreview.value = false
             previewFile.pop()
         })
@@ -427,45 +416,45 @@ let sortType = ref('name')
 let sortSc = ref('ASC')
 // 排序类型表格
 const options1 = reactive([
-  {
-    value: 'name',
-    label: '按名称排序',
-  },
-  {
-    value: 'size',
-    label: '按文件大小排序',
-  },
-  {
-    value: 'updated_at',
-    label: '按更新时间排序',
-  },
-  {
-    value: 'created_at',
-    label: '按创建时间排序',
-  }
+    {
+        value: 'name',
+        label: '按名称排序',
+    },
+    {
+        value: 'size',
+        label: '按文件大小排序',
+    },
+    {
+        value: 'updated_at',
+        label: '按更新时间排序',
+    },
+    {
+        value: 'created_at',
+        label: '按创建时间排序',
+    }
 ])
 const options2 = reactive([
     {
-        value:'ASC',
-        label:'升序'
+        value: 'ASC',
+        label: '升序'
     },
     {
-        value:'DESC',
-        label:'降序'
+        value: 'DESC',
+        label: '降序'
     }
 ])
 
-const getDoc = async(parant_id=0) => {
-    doc_list.splice(0,doc_list.length)
-    const {data} =await getFileListPlus({
-        parent_id:parant_id,
-        order_id:sortType.value,
-        order_direction:sortSc.value
+const getDoc = async (parant_id = 0) => {
+    doc_list.splice(0, doc_list.length)
+    const { data } = await getFileListPlus({
+        parent_id: parant_id,
+        order_id: sortType.value,
+        order_direction: sortSc.value
     })
-    if(!data?.data?.files?.length){
+    if (!data?.data?.files?.length) {
         isEmpty.value = true
     }
-    data?.data?.files?.map(item=>{
+    data?.data?.files?.map(item => {
         doc_list.push(item)
     })
 }
@@ -473,38 +462,38 @@ const getDoc = async(parant_id=0) => {
 // 右键空白区域
 const aliveControls = (e) => {
     console.log(e);
-    PubSub.publish('aliveControls',e)
+    PubSub.publish('aliveControls', e)
 }
 
-onMounted(async()=>{
-    if(!srText){
+onMounted(async () => {
+    if (!srText) {
         await getDoc(id)
     } else {
         await getSearchResult(srText)
     }
-    PubSub.subscribe('zIndexTo',(a,num)=>{
+    PubSub.subscribe('zIndexTo', (a, num) => {
         zIndex.value = num
     })
-    PubSub.subscribe('updateDoc',async()=>{
+    PubSub.subscribe('updateDoc', async () => {
         await getDoc(route.query.id)
     })
-    PubSub.subscribe('option',async(a,item)=>{
-        if(target.length){
+    PubSub.subscribe('option', async (a, item) => {
+        if (target.length) {
             target.pop()
         }
         target.push(item[1])
-        if(item[0] === 1){
+        if (item[0] === 1) {
             // download
             await download()
             target.pop()
-        } else if(item[0] === 2){
+        } else if (item[0] === 2) {
             // delete
             await delDoc()
             target.pop()
-        } else if(item[0] === 3){
+        } else if (item[0] === 3) {
             // move
             await move()
-        } else if(item[0] === 4){
+        } else if (item[0] === 4) {
             // rename
             await rename()
         } else {
@@ -512,23 +501,23 @@ onMounted(async()=>{
             return
         }
     })
-    document.addEventListener('click',e=>handleDocumentClick(e))
-    document.addEventListener('contextmenu',e=>handleDocumentClick(e))
+    document.addEventListener('click', e => handleDocumentClick(e))
+    document.addEventListener('contextmenu', e => handleDocumentClick(e))
 })
 
 // 搜索关键词
 let srText = route.query.searchText || ''
 
-let getSearchResult = async(searchText) => {
-    doc_list.splice(0,doc_list.length)
-    const {data} = await docSearch({
-        keyword:searchText
+let getSearchResult = async (searchText) => {
+    doc_list.splice(0, doc_list.length)
+    const { data } = await docSearch({
+        keyword: searchText
     })
     console.log(data);
-    if(!data?.data?.files?.length){
+    if (!data?.data?.files?.length) {
         isEmpty.value = true
     }
-    data?.data?.files?.map(item=>{
+    data?.data?.files?.map(item => {
         doc_list.push(item)
     })
 }
@@ -537,84 +526,97 @@ let getSearchResult = async(searchText) => {
 
 let currnetID = ref(0)
 
-watch(()=>route,(val)=>{
-    if(!val.query.searchText){
+watch(() => route, (val) => {
+    if (!val.query.searchText) {
         currnetID.value = val.query.id || 0
         getDoc(val.query.id)
-    } else if(val.query.searchText){
+    } else if (val.query.searchText) {
         srText = val.query.searchText
         getSearchResult(srText)
     }
-},{
-    deep:true
+}, {
+    deep: true
 })
 
 </script>
 
 
 <style lang="less" scoped>
-.move{
+.move {
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%,-50%);
+    transform: translate(-50%, -50%);
     width: 300px;
-    .title{
+
+    .title {
         font-size: 16px;
         font-weight: 700;
         margin: 10px 0;
     }
-    .btn{
+
+    .btn {
         width: 100%;
         text-align: center;
-        .el-button{
+
+        .el-button {
             margin: 30px;
         }
     }
 }
-.animate{
+
+.animate {
     animation: fadeIn;
     animation-duration: 1s;
 }
-.animate2{
+
+.animate2 {
     animation: fadeIn;
     animation-duration: 0.5s;
 }
-.rename_box{
+
+.rename_box {
     border-radius: 15px;
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%,-50%);
+    transform: translate(-50%, -50%);
     width: 300px;
     height: 200px;
-    .input{
+
+    .input {
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        .el-input{
+
+        .el-input {
             width: 200px;
             margin-right: 10px;
         }
     }
-    .title{
+
+    .title {
         font-size: 16px;
         font-weight: 700;
         margin: 10px 0;
     }
-    .btn{
+
+    .btn {
         width: 100%;
         text-align: center;
-        .el-button{
+
+        .el-button {
             margin: 30px;
         }
     }
 }
-.option{
+
+.option {
     width: 150px;
     border-radius: 10px;
     transition: all 0s;
-    .option_item{
+
+    .option_item {
         border-radius: 10px;
         box-sizing: border-box;
         padding-left: 20px;
@@ -624,75 +626,89 @@ watch(()=>route,(val)=>{
         height: 40px;
         margin: 5px;
     }
-    .option_item:hover{
+
+    .option_item:hover {
         background-color: #ece4e4;
     }
 }
-    .container{
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            .top{
-                .left{
-                    float: left;
-                    padding-left: 40px;
-                    color: gray;
-                    font-weight: 100;
-                    font-size: 12px;
-                    .icon{
-                        font-size: 14px;
-                    }
-                }
-                width: 100%;
-                height: 30px;
-                // background-color: pink;
-                line-height: 30px;
-                .right{
-                    margin-right: 30px;
-                    float: right;
-                    .select_box{
-                        width: 120px;
-                    }
-                }
-            }
-            .container_list{
-                width: 100%;
-                flex: 1;
-                padding: 10px;
-                ul{
-                    width: 100%;
-                    display: flex;
-                    flex: 1;
-                    justify-content: flex-start;
-                    align-items: flex-start;
-                    flex-wrap: wrap;
-                }
-                li{
-                    width: 160px;
-                    display:flex ;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 25px 10px;
-                    border-radius: 10px;
-                    .icon{
-                        font-size: 80px;
-                        color: #567aff;
-                    }
-                    .name{
-                        text-align: center;
-                        width: 100%;
-                        margin: 5px;
-                    }
-                    .time{
-                        font-weight: 100;
-                        color: gray;
-                        font-size: 10px;
-                    }
-                }
-                li:hover{
-                    background-color: rgb(233, 224, 224);
-                }
+
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .top {
+        .left {
+            float: left;
+            padding-left: 40px;
+            color: gray;
+            font-weight: 100;
+            font-size: 12px;
+
+            .icon {
+                font-size: 14px;
             }
         }
+
+        width: 100%;
+        height: 30px;
+        // background-color: pink;
+        line-height: 30px;
+
+        .right {
+            margin-right: 30px;
+            float: right;
+
+            .select_box {
+                width: 120px;
+            }
+        }
+    }
+
+    .container_list {
+        width: 100%;
+        flex: 1;
+        padding: 10px;
+
+        ul {
+            width: 100%;
+            display: flex;
+            flex: 1;
+            justify-content: flex-start;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        li {
+            width: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 25px 10px;
+            border-radius: 10px;
+
+            .icon {
+                font-size: 80px;
+                color: #567aff;
+            }
+
+            .name {
+                text-align: center;
+                width: 100%;
+                margin: 5px;
+            }
+
+            .time {
+                font-weight: 100;
+                color: gray;
+                font-size: 10px;
+            }
+        }
+
+        li:hover {
+            background-color: rgb(233, 224, 224);
+        }
+    }
+}
 </style>

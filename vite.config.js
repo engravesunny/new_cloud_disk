@@ -9,10 +9,11 @@ import Inspect from 'vite-plugin-inspect'
 const pathSrc = path.resolve(__dirname, 'src')
 
 export default defineConfig({
-  base:'./',
-  server:{
+  base: './',
+  server: {
+    open: true,
     port: 3000,
-    host:'0.0.0.0',
+    host: '0.0.0.0',
     proxy: {
       '/api': {
         target: 'http://106.15.58.0:8888/',
@@ -20,7 +21,7 @@ export default defineConfig({
         ws: true,
         changeOrigin: true,
         // rewrite: (path) => path.replace(/^\/api/, ''),
-    }
+      }
     }
   },
   resolve: {
@@ -31,7 +32,7 @@ export default defineConfig({
   plugins: [
     Vue(),
     AutoImport({
-      imports: ['vue','vue-router'],
+      imports: ['vue', 'vue-router'],
 
       resolvers: [
         ElementPlusResolver(),

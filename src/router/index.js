@@ -1,30 +1,32 @@
 import { ElMessage } from "element-plus";
 import { createRouter, createWebHashHistory } from "vue-router";
-
+import { user } from "../store/user";
+import pinia from "../store";
+const useStore = user(pinia)
 
 const routes = [
     {
         path: '/drive',
         name: 'layout',
         redirect: '/doc',
-        component: ()=>import('@/view/Layout/index.vue'),
-        children:[
+        component: () => import('@/view/Layout/index.vue'),
+        children: [
             {
-                path:"/doc",
-                name:"doc",
-                component:()=>import('@/view/Doc/index.vue')
+                path: "/doc",
+                name: "doc",
+                component: () => import('@/view/Doc/index.vue')
             }
         ]
     },
     {
-        path:"/login",
-        name:'login',
-        component:()=>import('@/view/Login/index.vue')
+        path: "/login",
+        name: 'login',
+        component: () => import('@/view/Login/index.vue')
     },
     {
-        path:"/",
-        name:'home',
-        component:()=>import('@/view/Home/index.vue')
+        path: "/",
+        name: 'home',
+        component: () => import('@/view/Home/index.vue')
     }
 ];
 
@@ -35,22 +37,29 @@ const router = createRouter({
 
 // const routeNeedToken = ["/myLike","/suggestSong","/songList"]
 
-router.beforeEach((to,from,next)=>{
-    if(to.fullPath !== '/login'){
+router.beforeEach((to, from, next) => {
+    if (to.fullPath !== '/login') {
         // 未登录
-        if(to.fullPath === '/'){
+        if (to.fullPath === '/') {
             next();
         } else {
-            if(!localStorage.getItem('user_info')){
+            if (!useStore.userInfo.token) {
                 ElMessage('请先登录')
                 next('/login')
             } else {
                 next()
             }
         }
-        
-    }else {
-        next()
+
+    } else {
+        if (useStore.userInfo.token) {
+            console.log(useStore.userInfo.token);
+            next('/doc')
+        } else {
+
+            next()
+        }
+
     }
 })
 

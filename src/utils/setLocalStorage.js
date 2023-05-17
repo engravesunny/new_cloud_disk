@@ -6,5 +6,6 @@ const userStore = user()
 const { userInfo } = storeToRefs(userStore)
 
 export const setUserInfo = () => {
-    localStorage.setItem('user_info',JSON.stringify(userInfo.value))
+    localStorage.setItem('user_info', JSON.stringify(userInfo.value))
+    localStorage.setItem('token', JSON.stringify(userInfo?.value?.token))
 }
