@@ -1,6 +1,6 @@
 <template>
     <el-scrollbar>
-        <div class="container" @contextmenu.prevent="aliveControls($event)">
+        <div class="container" @mousedown="addZIndex" @contextmenu.prevent="aliveControls($event)">
             <div class="top" :style="{ zIndex: zIndex }">
                 <div class="left iconfont"> <span class="icon">&#xe63f;</span> 支持预览媒体文件</div>
                 <div class="right">
@@ -100,6 +100,11 @@ let loading = ref(false)
 let loadingText = ref('')
 let deleteList = reactive([])
 let zIndex = ref(1)
+
+const addZIndex = () => {
+    zIndex.value = 1
+    isShowOption.value = false
+}
 
 // 右键
 let target = reactive([])
@@ -567,7 +572,7 @@ watch(() => route, (val) => {
 
 .animate {
     animation: fadeIn;
-    animation-duration: 1s;
+    animation-duration: 0.5s;
 }
 
 .animate2 {
@@ -687,6 +692,7 @@ watch(() => route, (val) => {
             align-items: center;
             padding: 25px 10px;
             border-radius: 10px;
+            transition: background 0.4s;
 
             .icon {
                 font-size: 80px;

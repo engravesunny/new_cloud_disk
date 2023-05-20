@@ -80,8 +80,7 @@ import { setUserInfo } from "@/utils/setLocalStorage"
 import { updateAvatar, getUserInfo } from '@/api/user'
 import { user } from '../../../../store/user'
 import { storeToRefs } from 'pinia'
-import pinia from "../../../../store";
-const userStore = user(pinia)
+const userStore = user()
 let { userInfo } = storeToRefs(userStore)
 
 let isShowOption = ref(false)
@@ -92,7 +91,7 @@ let showOption = () => {
 
 let logout = async () => {
     await userStore.clearInfo()
-    location.replace('/#/login')
+    router.replace('/login')
 }
 
 
@@ -101,18 +100,9 @@ let avatar = ref('')
 let percentage = ref(0)
 
 let loadUserInfo = () => {
-    if (userInfo.value.token) {
-        username.value = userInfo.value.username
-        avatar.value = userInfo.value.avatar
-    } else {
-        if (localStorage.getItem('user_info')) {
-            userInfo.value = JSON.parse(localStorage.getItem('user_info'))
-            username.value = userInfo.value.username
-            avatar.value = userInfo.value.avatar
-        } else {
-            router.push('/login')
-        }
-    }
+    console.log(111, userInfo.value.username);
+    username.value = userInfo.value.username
+    avatar.value = userInfo.value.avatar
 }
 
 let updateUserInfo = async () => {
@@ -129,11 +119,13 @@ let updateUserInfo = async () => {
 }
 
 let uploadAvatar = async (file) => {
+    console.log(avatar.value, file);
     try {
         ElMessage('正在上传头像')
         const { data } = await updateAvatar({
-            avatar, file
+            avatar: avatar.value, file
         })
+        console.log(data);
         if (data.code === 0) {
             await updateUserInfo()
             ElMessage({
@@ -142,7 +134,7 @@ let uploadAvatar = async (file) => {
             })
             router.go(0)
         } else {
-            ElMessage(data?.data?.msg)
+            ElMessage(data?.msg)
         }
     } catch (error) {
         console.log(error);
